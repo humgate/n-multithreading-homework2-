@@ -8,10 +8,13 @@ public class Manager {
     private String name;
 
     //время в миллисекундах на производство и получение менеджером нового авто от производителя
-    private final int NEW_CAR_GETTING_TIME = 2000;
+    private final int NEW_CAR_PROD_TIME = 2000;
 
     //время оформления продажи автомобиля
     private final int CAR_ORDER_TIME = 500;
+
+    //количество машин которое должен продать салон
+    private final int CARS_TO_SELL = 10;
 
     //салон в котором работает менеджер
     private final CarRetailer carRetailer;
@@ -37,7 +40,7 @@ public class Manager {
      * Логика здесь следующая: в нашем салоне будет работать более одного менеджера. Поэтому неправильно будет
      * синхронизировать потоки по менеджеру. Если так сделать, то поток-покупатель, наткнувшись на отсутствие машин,
      * будет ждать когда исключительно ТОТ ЖЕ менеджер, который занимался продажей ему, примет на склад авто от
-     * производителя. А нам как раз это не нужно, мы наняли специально двух менеджеров чтобы любой из них мог
+     * производителя. А нам как раз это не нужно, мы наняли специально нескольких менеджеров чтобы любой из них мог
      * принимать новые машины.
      *
      * Объектом-монитором должен стать склад салона (в нашем случае сам салон).
@@ -46,20 +49,22 @@ public class Manager {
      * можно не бояться ситуации гонки потоков в отношении менеджера
      */
     public void receiveCar() {
-        for (int i = 0; i < 10; i++) {
-            synchronized (carRetailer) {
-                try {
-                    Thread.sleep(NEW_CAR_GETTING_TIME);
-                    System.out.println(Thread.currentThread().getName() + ": Произведен новый автомобиль");
+        for (int i = 0; i < CARS_TO_SELL; i++) {
+            try {
+                Thread.sleep(NEW_CAR_PROD_TIME);
+                System.out.println(Thread.currentThread().getName() + ": Произведен новый автомобиль");
+
+                synchronized (carRetailer) {
                     carRetailer.receiveCar(new Car());
                     System.out.println(Thread.currentThread().getName() + ": автомобиль принят " + this);
                     carRetailer.notifyAll();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
+
 
     /**
      * Продажа автомобиля со склада салона.
